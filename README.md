@@ -92,9 +92,13 @@ The bundle is ad-hoc signed. macOS ties Full Disk Access to the bundle ID
 a known tradeoff until real signing lands (M6). The CLI does not have this
 problem; grant FDA to your terminal once.
 
-To package a DMG (app + CLI): `just dmg` (output in `dist/`). The DMG is
-unsigned and un-notarized; downloaded copies will trip Gatekeeper. Building
-from source or a future Homebrew tap is the recommended route.
+To package an installer DMG: `just dmg` (output in `dist/`). Open it and
+drag **Cruft** onto the **Applications** folder — the standard macOS
+install. The CLI is not in the DMG; install it with `just install`.
+
+The DMG is unsigned and un-notarized; downloaded copies will trip
+Gatekeeper (right-click → Open, or build from source). A Homebrew tap is
+the planned distribution route (M6).
 
 ## Usage
 

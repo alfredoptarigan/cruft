@@ -57,8 +57,7 @@ dmg: test app
     rm -rf dist/staging
     mkdir -p dist/staging
     cp -R dist/Cruft.app dist/staging/
-    cp .build/release/cruft dist/staging/
-    cp -R .build/release/CleanKit_CleanKit.bundle dist/staging/
+    ln -s /Applications dist/staging/Applications
     cp README.md dist/staging/
     hdiutil create -volname "Cruft {{version}}" -srcfolder dist/staging -ov -format UDZO "dist/cruft-{{version}}.dmg"
     rm -rf dist/staging
