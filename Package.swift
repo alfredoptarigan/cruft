@@ -7,6 +7,7 @@ let package = Package(
     products: [
         .library(name: "CleanKit", targets: ["CleanKit"]),
         .executable(name: "cruft", targets: ["cruft-cli"]),
+        .executable(name: "CruftApp", targets: ["CruftApp"]),
     ],
     dependencies: [
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.1.0"),
@@ -25,6 +26,12 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
+        .executableTarget(
+            name: "CruftApp",
+            dependencies: ["CleanKit"],
+            exclude: ["Info.plist"]
+        ),
         .testTarget(name: "CleanKitTests", dependencies: ["CleanKit"]),
+        .testTarget(name: "CruftAppTests", dependencies: ["CruftApp"]),
     ]
 )

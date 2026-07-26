@@ -36,16 +36,28 @@ install: release
     cp -R .build/release/CleanKit_CleanKit.bundle ~/.local/bin/
     @echo "Installed ~/.local/bin/cruft"
 
+# Assemble Cruft.app from the release build (ad-hoc signed).
+# TCC binds FDA to bundle ID + signature, so the grant must be re-given
+# after each rebuild — known tradeoff until real signing lands in M6.
+app: release
+    rm -rf dist/Cruft.app
+    mkdir -p dist/Cruft.app/Contents/MacOS dist/Cruft.app/Contents/Resources
+    cp .build/release/CruftApp dist/Cruft.app/Contents/MacOS/
+    cp -R .build/release/CleanKit_CleanKit.bundle dist/Cruft.app/Contents/Resources/
+    cp Sources/CruftApp/Info.plist dist/Cruft.app/Contents/
+    codesign --force -s - dist/Cruft.app
+    @echo "Run: open dist/Cruft.app"
+
 # Package the release binary into an unsigned DMG under dist/.
 # The CleanKit_CleanKit.bundle must ship next to the binary — it carries
 # rules.yaml, and `cruft` refuses to run without it.
 # Unsigned + un-notarized: downloaded copies hit Gatekeeper; distribution
 # via Homebrew tap (builds from source) is the preferred route. See PLAN.md.
-dmg: test release
+dmg: test app
     rm -rf dist/staging
     mkdir -p dist/staging
-    cp .build/release/cruft dist/staging/
-    cp -R .build/release/CleanKit_CleanKit.bundle dist/staging/
+    cp -R dist/Cruft.app dist/staging/
+    ln -s /Applications dist/staging/Applications
     cp README.md dist/staging/
     hdiutil create -volname "Cruft {{version}}" -srcfolder dist/staging -ov -format UDZO "dist/cruft-{{version}}.dmg"
     rm -rf dist/staging

@@ -76,9 +76,29 @@ $ cp -R .build/release/cruft .build/release/CleanKit_CleanKit.bundle ~/.local/bi
 The `CleanKit_CleanKit.bundle` directory must sit next to the binary — it
 contains the rules database.
 
-To package a DMG: `just dmg` (output in `dist/`). The DMG is unsigned and
-un-notarized; downloaded copies will trip Gatekeeper. Building from source
-or a future Homebrew tap is the recommended route.
+### The app
+
+```console
+$ just app && open dist/Cruft.app
+```
+
+SwiftUI shell over the same engine: Full Disk Access banner with a deep link
+to System Settings, live scan progress, and read-only results grouped by
+rule. Selection and deletion are later milestones — the app cannot delete
+anything yet.
+
+The bundle is ad-hoc signed. macOS ties Full Disk Access to the bundle ID
+*and* code signature, so a rebuilt app must be re-granted FDA each time —
+a known tradeoff until real signing lands (M6). The CLI does not have this
+problem; grant FDA to your terminal once.
+
+To package an installer DMG: `just dmg` (output in `dist/`). Open it and
+drag **Cruft** onto the **Applications** folder — the standard macOS
+install. The CLI is not in the DMG; install it with `just install`.
+
+The DMG is unsigned and un-notarized; downloaded copies will trip
+Gatekeeper (right-click → Open, or build from source). A Homebrew tap is
+the planned distribution route (M6).
 
 ## Usage
 
@@ -136,8 +156,8 @@ future GUI has will be reachable from the CLI first.
 | Milestone | Deliverable |
 |---|---|
 | M0 ✅ | Scan engine + CLI, dry-run only |
-| M1 | Full Disk Access onboarding, SwiftUI shell |
-| M2–M3 | Live scan UI, results with tri-state selection |
+| M1 ✅ | Full Disk Access onboarding, SwiftUI shell, live scan (read-only) |
+| M2–M3 | Cancellation polish, results with tri-state selection |
 | M4 | Trash-based deletion, undo log, exclusions |
 | M5–M6 | Polish, signing, notarization, Homebrew tap |
 
