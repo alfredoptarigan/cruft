@@ -6,23 +6,28 @@ import Observation
 /// boolean soup. Cases for cleaning arrive with deletion in M4.
 enum ScanState: Sendable {
     case idle
-    case scanning(scanned: Int, currentPath: String)
+    case scanning(scanned: Int, currentPath: String, items: [CleanupItem])
     case results(ScanResult)
     case failed(String)
+
+    var scanningItems: [CleanupItem] {
+        if case .scanning(_, _, let items) = self { items } else { [] }
+    }
 }
 
 /// Pure fold of scan events into UI state; unit-tested in ScanReducerTests.
 func reduce(_ state: ScanState, event: ScanEvent) -> ScanState {
     switch event {
     case .started:
-        .scanning(scanned: 0, currentPath: "")
+        return .scanning(scanned: 0, currentPath: "", items: [])
     case .progress(let scanned, let currentPath):
-        .scanning(scanned: scanned, currentPath: currentPath)
-    case .found:
-        // Items are presented from the final ScanResult; live item feed is M3.
-        state
+        return .scanning(scanned: scanned, currentPath: currentPath, items: state.scanningItems)
+    case .found(let item):
+        guard case .scanning(let scanned, let currentPath, var items) = state else { return state }
+        items.append(item)
+        return .scanning(scanned: scanned, currentPath: currentPath, items: items)
     case .finished(let result):
-        .results(result)
+        return .results(result)
     }
 }
 
@@ -31,20 +36,27 @@ func reduce(_ state: ScanState, event: ScanEvent) -> ScanState {
 final class AppState {
     var state: ScanState = .idle
     var hasFullDiskAccess = FullDiskAccess.probe()
+    /// nil scans every category (Smart Scan); sidebar modules narrow it.
+    var scanScope: CleanKit.Category?
+    var selection = SelectionModel()
 
     @ObservationIgnored private var scanTask: Task<Void, Never>?
 
     func startScan() {
         scanTask?.cancel()
-        state = .scanning(scanned: 0, currentPath: "")
+        let categories = scanScope.map { Set([$0]) } ?? Set(CleanKit.Category.allCases)
+        state = .scanning(scanned: 0, currentPath: "", items: [])
         scanTask = Task {
             do {
                 let scanner = CleanKit.Scanner(rules: try RuleStore.bundled())
-                let stream = await scanner.scan(categories: Set(CleanKit.Category.allCases))
+                let stream = await scanner.scan(categories: categories)
                 for try await event in stream {
                     // A cancelled task must not overwrite state cancelScan reset.
                     guard !Task.isCancelled else { return }
                     state = reduce(state, event: event)
+                    if case .finished(let result) = event {
+                        selection.resetToDefault(for: result)
+                    }
                 }
             } catch is CancellationError {
                 // cancelScan already reset the state.
