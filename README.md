@@ -62,7 +62,7 @@ Guarantees, enforced in code and tests:
 Requires macOS 26 and Xcode 26 (Swift 6).
 
 ```console
-$ git clone <repo-url> cruft && cd cruft
+$ git clone https://github.com/alfredoptarigan/cruft.git && cd cruft
 $ just install        # builds release, installs to ~/.local/bin
 ```
 
