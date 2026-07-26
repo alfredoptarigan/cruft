@@ -1,0 +1,70 @@
+# Cruft cleanup rules — M0 ships the developer category only.
+#
+# Every rule needs two tests in RuleMatchTests: one proving it matches its
+# intended path, one proving it does NOT match a neighbouring dangerous path.
+#
+# Command-based targets (Docker unused images, `xcrun simctl delete
+# unavailable`) need a different rule kind and are deliberately absent.
+
+- id: xcode-derived-data
+  path: ~/Library/Developer/Xcode/DerivedData/*
+  category: developer
+  safety: safe
+  min_age_days: 7
+  reason: "Build artifacts, regenerated on next build"
+
+- id: xcode-ios-device-support
+  path: ~/Library/Developer/Xcode/iOS DeviceSupport/*
+  category: developer
+  safety: safe
+  min_age_days: 30
+  reason: "Device debug symbols, re-created when the device reconnects"
+
+- id: simulator-caches
+  path: ~/Library/Developer/CoreSimulator/Caches/*
+  category: developer
+  safety: safe
+  min_age_days: 7
+  reason: "Simulator caches, regenerated on demand"
+
+- id: homebrew-cache
+  path: ~/Library/Caches/Homebrew/*
+  category: developer
+  safety: safe
+  min_age_days: 0
+  reason: "Downloaded bottles and sources, re-downloaded by brew as needed"
+
+- id: npm-cache
+  path: ~/.npm/_cacache
+  category: developer
+  safety: safe
+  min_age_days: 0
+  reason: "npm content-addressable cache, safe to clear per npm docs"
+
+- id: pnpm-store
+  path: ~/Library/pnpm/store
+  category: developer
+  safety: review
+  min_age_days: 30
+  reason: "pnpm package store; clearing forces re-download for existing projects"
+
+- id: yarn-cache
+  path: ~/Library/Caches/Yarn
+  category: developer
+  safety: safe
+  min_age_days: 0
+  reason: "Yarn global cache, re-fetched on install"
+
+- id: pip-cache
+  path: ~/Library/Caches/pip
+  category: developer
+  safety: safe
+  min_age_days: 0
+  reason: "pip wheel and HTTP cache, re-fetched on install"
+
+- id: gradle-caches
+  path: ~/.gradle/caches
+  category: developer
+  safety: safe
+  min_age_days: 30
+  reason: "Gradle dependency and build caches, re-downloaded or rebuilt on demand"
