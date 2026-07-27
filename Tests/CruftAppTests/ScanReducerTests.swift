@@ -8,14 +8,8 @@ import Testing
         var state = ScanState.idle
 
         state = reduce(state, event: .started(estimatedRoots: 9))
-        guard case .scanning(0, "") = state else {
-            Issue.record("started should enter scanning with zeroed counters")
-            return
-        }
-
-        state = reduce(state, event: .progress(scanned: 3, currentPath: "/x/y"))
-        guard case .scanning(3, "/x/y") = state else {
-            Issue.record("progress should update counters")
+        guard case .scanning(0, "", let empty) = state, empty.isEmpty else {
+            Issue.record("started should enter scanning with zeroed counters and no items")
             return
         }
 
@@ -28,8 +22,14 @@ import Testing
             ruleID: "r",
             reason: "why")
         state = reduce(state, event: .found(item))
-        guard case .scanning = state else {
-            Issue.record("found must not change phase")
+        guard case .scanning(_, _, let found) = state, found.map(\.id) == [item.id] else {
+            Issue.record("found should append the item to the live feed")
+            return
+        }
+
+        state = reduce(state, event: .progress(scanned: 3, currentPath: "/x/y"))
+        guard case .scanning(3, "/x/y", let kept) = state, kept.count == 1 else {
+            Issue.record("progress should update counters and keep live items")
             return
         }
 

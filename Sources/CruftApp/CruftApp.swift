@@ -15,14 +15,24 @@ struct CruftApp: App {
     }
 }
 
+enum SidebarItem: Hashable {
+    case smartScan
+    case module(CleanKit.Category)
+}
+
 struct ContentView: View {
+    @Environment(AppState.self) private var app
+    @State private var sidebarSelection: SidebarItem? = .smartScan
+
     var body: some View {
         NavigationSplitView {
-            List {
+            List(selection: $sidebarSelection) {
                 Label("Smart Scan", systemImage: "sparkles")
+                    .tag(SidebarItem.smartScan)
                 Section("Modules") {
                     ForEach(CleanKit.Category.allCases, id: \.self) { category in
                         Label(category.label, systemImage: category.icon)
+                            .tag(SidebarItem.module(category))
                     }
                 }
             }
@@ -30,6 +40,9 @@ struct ContentView: View {
             .navigationTitle("Cruft")
         } detail: {
             DashboardView()
+        }
+        .onChange(of: sidebarSelection) { _, selection in
+            app.scanScope = if case .module(let category) = selection { category } else { nil }
         }
     }
 }
@@ -63,10 +76,11 @@ struct DashboardView: View {
             switch app.state {
             case .idle:
                 idle
-            case .scanning(let scanned, let currentPath):
-                scanning(scanned: scanned, currentPath: currentPath)
+            case .scanning(let scanned, let currentPath, let items):
+                scanHeader(scanned: scanned, currentPath: currentPath)
+                ResultsView(items: items, live: true)
             case .results(let result):
-                ResultsView(result: result) { app.startScan() }
+                ResultsView(items: result.items) { app.startScan() }
             case .failed(let message):
                 failed(message)
             }
@@ -85,7 +99,9 @@ struct DashboardView: View {
                 Text("\(DryRunReport.format(free)) free (including purgeable)")
                     .foregroundStyle(.secondary)
             }
-            Button("Scan for junk") { app.startScan() }
+            Button(app.scanScope.map { "Scan \($0.label)" } ?? "Scan for junk") {
+                app.startScan()
+            }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
             Text("Dry run only — this build cannot delete anything.")
@@ -95,22 +111,21 @@ struct DashboardView: View {
         }
     }
 
-    private func scanning(scanned: Int, currentPath: String) -> some View {
-        VStack(spacing: 12) {
-            Spacer()
+    private func scanHeader(scanned: Int, currentPath: String) -> some View {
+        HStack(spacing: 12) {
             Image(systemName: "rays")
-                .font(.largeTitle)
                 .symbolEffect(.variableColor.iterative)
-            Text("Scanned \(scanned) candidates…")
+            Text("Scanned \(scanned)…")
+                .monospacedDigit()
             Text(currentPath)
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .frame(maxWidth: 480)
-            Button("Cancel") { app.cancelScan() }
             Spacer()
+            Button("Cancel") { app.cancelScan() }
         }
+        .padding(.horizontal, 4)
     }
 
     private func failed(_ message: String) -> some View {
